@@ -1,0 +1,430 @@
+Break On
+SetConsole ("SHOW")
+
+$TITLE = "mUVe 3D GCode File Corrector"
+$RegKey = "GCode Fixer"
+
+;Main form
+
+$Form = CreateObject("Kixtart.Form")
+$Form.Icon = "laser_black.ico"
+$Form.Text = $CurrentFileName + " - " + $TITLE
+$Form.BorderStyle = 2 ;Sizable
+$Form.ClientWidth = ReadValueEx($RegKey, "ClientWidth", 625)
+$Form.ClientHeight = ReadValueEx($RegKey, "ClientHeight", 550)
+$Form.Left = ReadValueEx($RegKey, "Left", 100)
+$Form.Top = ReadValueEx($RegKey, "Top", 100)
+$Form.OnActivate = "OnFormActivate()"
+$Form.ClipChildren = 1
+
+$FormInput = $Form.Controls.Add("Textbox")
+$FormInput.Location = 20, 50
+$FormInput.Size = 500, 20
+$FormInput.Caption = $CurrentFileName
+
+$FormZmm = $Form.Controls.Add("Textbox")
+$FormZmm.Location = 20, 105
+$FormZmm.Size = 20, 20
+$FormZmm.Caption = "2"
+
+$FormDropPause = $Form.Controls.Add("Textbox")
+$FormDropPause.Location = 20, 208
+$FormDropPause.Size = 30, 20
+$FormDropPause.Caption = "500"
+
+$FormLaserPower = $Form.Controls.Add("Textbox")
+$FormLaserPower.Location = 180, 370
+$FormLaserPower.Size = 30, 20
+$FormLaserPower.Caption = "255"
+
+;$FormZBaseLayers = $Form.Controls.Add("Textbox")
+;$FormZBaseLayers.Location = 20, 280
+;$FormZBaseLayers.Size = 20, 20
+;$FormZBaseLayers.Caption = "2"
+
+$FormZBaseTime = $Form.Controls.Add("Textbox")
+$FormZBaseTime.Location = 20, 262
+$FormZBaseTime.Size = 45, 20
+$FormZBaseTime.Caption = "10000"
+
+$LaserPowerLabel = $Form.Controls.Add("Label")
+$LaserPowerLabel.Location = 220, 372
+$LaserPowerLabel.Size = 300, 30
+$LaserPowerLabel.Text = "Laser Power Setting, 0 to 255"
+
+;$ZLayersLabel = $Form.Controls.Add("Label")
+;$ZLayersLabel.Location = 50, 282
+;$ZLayersLabel.Size = 300, 30
+;$ZLayersLabel.Text = "Number of layers in Base Platform."
+
+$DropPauseLabel = $Form.Controls.Add("Label")
+$DropPauseLabel.Location = 55, 210
+$DropPauseLabel.Size = 300, 30
+$DropPauseLabel.Text = "Time in milliseconds to pause after the peel move and drop."
+
+$ZTimeLabel = $Form.Controls.Add("Label")
+$ZTimeLabel.Location = 70, 260
+$ZTimeLabel.Size = 300, 40
+$ZTimeLabel.Text = "Enter Number of milliseconds Base Platform peel move pause, 10000 is a good start"
+
+$InputLabel = $Form.Controls.Add("Label")
+$InputLabel.Location = 20, 10
+$InputLabel.Size = 500, 40
+$InputLabel.Text = "Use Open dialog from File Menu to select target gcode file, corrected file will be saved/overwritten in the same directory as the original with '-mUVe' appended to the file name"
+
+$MMLabel = $Form.Controls.Add("Label")
+$MMLabel.Location = 50, 102
+$MMLabel.Size = 300, 50
+$MMLabel.Text = "Enter Number for Z Axis Peel Move: Whole numbers only, will be translated into 'mm' "
+
+$NotesLabel = $Form.Controls.Add("Label")
+$NotesLabel.Location = 375, 85
+$NotesLabel.Size = 275, 200
+$NotesLabel.Text = "Example end code in Slic3r, 'Stop' and 'End'" + Chr(13) + Chr(10) + "are needed to stop processing properly" + Chr(13) + Chr(10) + Chr(13) + Chr(10) + "Stop" + Chr(13) + Chr(10) + "M107 ;turn off laser" + Chr(13) + Chr(10) + "M400 ; make sure it turns off now" + Chr(13) + Chr(10) + "G91" + Chr(13) + Chr(10) + "G1 X0.0 Y0.0 Z10.0 E10.0 F32.000 ; z up 10" + Chr(13) + Chr(10) + "G90" + Chr(13) + Chr(10) + "M84     ; disable motors" + Chr(13) + Chr(10) + "End"
+
+$ZUpSpeed = $Form.Controls.Add("Textbox")
+$ZUpSpeed.Location = 20, 157
+$ZUpSpeed.Size = 20, 20
+$ZUpSpeed.Caption = "64"
+
+$ZLabel = $Form.Controls.Add("Label")
+$ZLabel.Location = 50, 155
+$ZLabel.Size = 300, 40
+$ZLabel.Text = "Enter Number for Z Axis Peel Move Speed: Whole numbers only, will be entered as feedrate."
+
+$LaserNotice = $Form.Controls.Add("Label")
+$LaserNotice.Location = 20, 310
+$LaserNotice.Size = 300, 40
+$LaserNotice.Text = "If you need to use codes other than M106 and M107 for laser control then enter them as replacement for the ones below. You can also control the laser power."
+
+$Lon = $Form.Controls.Add("Label")
+$Lon.Location = 70, 375
+$Lon.Size = 300, 30
+$Lon.Text = "Laser On GCode"
+
+$LaserOn = $Form.Controls.Add("Textbox")
+$LaserOn.Location = 20, 370
+$LaserOn.Size = 40, 20
+$LaserOn.Caption = "M106"
+
+$Loff = $Form.Controls.Add("Label")
+$Loff.Location = 70, 405
+$Loff.Size = 300, 30
+$Loff.Text = "Laser Off GCode"
+
+$LaserOff = $Form.Controls.Add("Textbox")
+$LaserOff.Location = 20, 400
+$LaserOff.Size = 40, 20
+$LaserOff.Caption = "M107"
+
+$SyncForce = $Form.Controls.Add("CheckBox")
+$SyncForce.Location = 20, 435
+$SyncForce.Size = 20, 20
+$SyncForce.Checked = "True"
+
+$SyncLabel = $Form.Controls.Add("Label")
+$SyncLabel.Location = 50, 435
+$SyncLabel.Size = 300, 50
+$SyncLabel.Text = "If Checked M400 will be inserted after Laser On/Off to ensure Marlin Firmware stays synced with laser codes and peel moves."
+
+$ButtonFixCode = $Form.CommandButton("Correct My Code!")
+$ButtonFixCode.Location = 20, 485
+
+$ButtonFixCode.OnClick = "ButtonFixCode_Click()"
+
+;Main menu
+
+$File = $Form.Menu.MenuItems.Add("File")
+$Open = $File.MenuItems.Add("Open...", "OnOpenClick")
+$Exit = $File.MenuItems.Add("Exit", "OnExitClick")
+
+;Common dialogs
+
+$WarningBox = $Form.Dialogs.MessageBox
+$WarningBox.Title = $TITLE
+$WarningBox.Icon = 48
+$WarningBox.Buttons = 3
+
+$OpenFileDialog = $Form.Dialogs.OpenFileDialog()
+$OpenFileDialog.InitialDirectory = @CURDIR
+$OpenFileDialog.Filter = "GCode Files (*.gcode)|*.gcode|All files (*.*)|*.*"
+$OpenFileDialog.Title = "Open"
+$OpenFileDialog.DefaultExt = "txt"
+$OpenFileDialog.ShowReadOnly = "True"
+$OpenFileDialog.CheckFileExists = "True"
+
+;Initialize
+
+$CurrentFileName = "Use open from the file menu to choose a source"
+
+If $CurrentFileName
+  If Not LoadFile($CurrentFileName)
+		$CurrentFileName = $Untitled
+	EndIf
+Else
+	$CurrentFileName = $Untitled
+EndIf
+
+$Form.Text = $TITLE + " - " + GetFileName($CurrentFileName)
+
+;Run the application
+
+$Form.Show
+$TextBox.SetFocus
+
+While $form.Visible
+	$ = Execute($form.DoEvents)
+Loop
+
+Exit 1
+
+;Support functions
+
+Function ButtonFixCode_Click()
+		
+	;setup the variables used				
+	$FormFile = $FormInput.Text
+	$Zmm = Val($FormZmm.Text)
+	$BaseThickness = $FormZBase.Text
+	$BaseLayers = CDbl($FormZBaseLayers.Text)
+	$BasePause = CDbl($FormZBaseTime.Text)
+	$ZPause = CDbl($FormDropPause.Text)
+	$Bt = CDbl(FormatNumber($BaseThickness, 3))
+	$Bl = CDbl(FormatNumber($BaseLayers, 1))
+	$Base = $Bt * $Bl
+	$LineNumber = 0
+	$CodeRead = 1
+	$SaveFile = Left($FormFile, Len($FormFile) - 6)
+	$SaveFile = $SaveFile + "-mUVe.gcode"
+	$ZLiftSpeed = " F" + $ZUpSpeed.Text + ".000"
+	$ZDropSpeed = " F64.000"
+	$LaserState = 1
+	;$PreCodingDirectory = @SCRIPTDIR
+	;$PreCodingFile = $PreCodingDirectory + "\PreCode.txt"
+		
+	$ = Open(1, $FormFile, 2) ;open the source file to start reading lines
+	Del $SaveFile ;delete the destination file if it already exists
+	$ = Open(2, $SaveFile, 5) ;open the destination file for writing
+
+		
+	While $CodeRead <> End ;main processing loop
+				
+		$CodeRead = ReadLine(1)	
+						
+		If Not InStr($CodeRead, "E") And Not InStr($CodeRead, "F") ;determine if the line  read is a quick move of only X and Y axes or not
+			$JumpMove = 1
+		Else
+			$JumpMove = 0
+		EndIf
+						
+		Select
+												
+			Case InStr($CodeRead, "G1 X") And $JumpMove = 1 ;quick move lines without an F code need to have one, this case handles that
+													
+				If $LaserState = 1
+					$ = WriteLine(2, $LaserOff.Text + Chr(13) + Chr(10))
+																				
+					If $SyncForce.Checked
+						$ = WriteLine(2, "M400" + Chr(13) + Chr(10))			
+					EndIf
+				EndIf
+								
+				$ = WriteLine(2, $CodeRead + " F5400.000" + Chr(13) + Chr(10))									
+				$ = WriteLine(2, $LaserOn.Text + Chr(13) + Chr(10))
+												
+				$LaserState = 1
+				$JumpMove = 0
+													
+				If $SyncForce.Checked
+					$ = WriteLine(2, "M400" + Chr(13) + Chr(10))
+				EndIf		
+												
+			Case InStr($CodeRead, "G1 X") And Not InStr($CodeRead, "E") ;quick move lines with an F code already need to omit that portion, this case handles that
+													
+				If $LaserState = 1
+					$ = WriteLine(2, $LaserOff.Text + Chr(13) + Chr(10))
+																										
+					If $SyncForce.Checked
+						$ = WriteLine(2, "M400" + Chr(13) + Chr(10))			
+					EndIf
+				EndIf
+													
+				$ = WriteLine(2, $CodeRead + Chr(13) + Chr(10))									
+				$ = WriteLine(2, $LaserOn.Text + " S" + $FormLaserPower.Text + CHR(13) + CHR(10))
+																	
+				$LaserState = 1
+																		
+				If $SyncForce.Checked
+					$ = WriteLine(2, "M400" + Chr(13) + Chr(10))
+				EndIf	
+									
+			Case InStr($CodeRead, "G1 Z") ;case for lines with a Z axis move, this is where the peel takes place
+									
+				$LineNumber = $LineNumber + 1			
+				$LineCount = Len($CodeRead)
+				$FLocation = InStrRev($CodeRead, "F") ; See how far into the line the F variable is so we know how many places to count for Z
+															
+				Select
+																	
+					Case $FLocation = 11 ; 1 digit leading on Z
+						$FloatNum = Val(SubStr($CodeRead, 5, 5))	
+						$ZRead = SubStr($CodeRead, 5, 5)
+					Case $FLocation = 12 ; 2 digit leading on Z
+						$FloatNum = Val(SubStr($CodeRead, 5, 6))	
+						$ZRead = SubStr($CodeRead, 5, 6)
+					Case $FLocation = 13 ; 3 digit leading on Z
+						$FloatNum = Val(SubStr($CodeRead, 5, 7))
+						$ZRead = SubStr($CodeRead, 5, 7)
+																	
+				EndSelect
+																
+				$LiftZUp = $Zmm + $FloatNum + $Base
+				$SecondZ = $LiftZUp + 2
+				$VerticalTravel = SubStr($ZRead, 2)
+				$AdjustedZ = CDbl(FormatNumber($ZRead,3)) + CDbl($Base)
+				
+													
+				If $LineNumber > 1 ;we don't want to do the peel move the first time we see a Z code, this statement handles it as well as handles all the Z codes from there on
+																															
+					$ = WriteLine(2, $LaserOff.Text + Chr(13) + Chr(10))
+																														
+					If $SyncForce.Checked
+						$ = WriteLine(2, "M400" + Chr(13) + Chr(10))			
+					EndIf			
+									
+					$ = WriteLine(2, "G1 E" + $LiftZUp + ".000" + $ZLiftSpeed + Chr(13) + Chr(10))
+					$ = WriteLine(2, "G4 P250" + Chr(13) + Chr(10))
+					$ = WriteLine(2, "G1 Z" + $LiftZUp + ".000" + $ZLiftSpeed + Chr(13) + Chr(10))
+					
+					If $LineNumber = 2
+						$ = WriteLine(2, "G4 P" + $BasePause + Chr(13) + Chr(10))
+										
+					Else
+						$ = WriteLine(2, "G4 P250" + Chr(13) + Chr(10))
+																
+					EndIf
+				
+					$ = WriteLine(2, "G1 Z" + $AdjustedZ + " E" + $AdjustedZ + $ZDropSpeed + Chr(13) + Chr(10))
+					$ = WriteLine(2, "G4 P" + $ZPause + Chr(13) + Chr(10))
+					$CodeRead = ReadLine(1)
+					$ = WriteLine(2, $CodeRead + " F5400.000" + Chr(13) + Chr(10))	
+																															
+					$ = WriteLine(2, $LaserOn.Text + " S" + $FormLaserPower.Text + CHR(13) + CHR(10))
+																																			
+					$LaserState = 1
+																															
+					If $SyncForce.Checked
+						$ = WriteLine(2, "M400" + Chr(13) + Chr(10))			
+					EndIf
+																															
+																													
+				EndIf
+								
+			Case InStr($CodeRead, "G1 X") And InStr($CodeRead, "E")	
+				$StartPoint = InStr($CodeRead, "E")
+				$StartPoint = $StartPoint - 1
+				$ = WriteLine(2, SubStr($CodeRead, 1, $StartPoint) + Chr(13) + Chr(10))
+								
+			Case $CodeRead = Stop
+				$CodeRead = ReadLine(1)
+				While $CodeRead <> End
+					WriteLine(2, $CodeRead + Chr(13) + Chr(10))
+					$CodeRead = ReadLine(1)
+				Loop
+								
+			Case $CodeRead <> End
+				$ = WriteLine(2, $CodeRead + Chr(13) + Chr(10))
+						
+		EndSelect
+			
+	Loop
+		
+	$ = WriteLine(2, $LaserOff.Text + Chr(13) + Chr(10)) ;ensure laser is turned off as the last command
+						
+	If $SyncForce.Checked
+		$ = WriteLine(2, "M400" + Chr(13) + Chr(10))			
+	EndIf	
+				
+	Close(1)
+	Close(2)
+	MessageBox("Processing Complete", "mUVe 3D",, 10)
+						
+EndFunction
+
+Function OnNewClick()
+	
+	If CheckUnSavedData()
+		
+		$TextBox.Clear()
+		$CurrentFileName = $Untitled
+		$Form.Text = $CurrentFileName + " - " + $TITLE
+		
+	EndIf 
+	
+EndFunction
+
+Function OnOpenClick()
+	
+	Dim $Line
+	Dim $FileName
+	
+	If $OpenFileDialog.ShowDialog() = 1
+			
+			$FileName = $OpenFileDialog.FileName
+			
+			$ = LoadFile($FileName)
+			
+			$CurrentFileName = $FileName
+			$Form.Text = GetFileName($CurrentFileName) + " - $TITLE"
+			$FormInput.Caption = $CurrentFileName
+		
+	EndIf
+	 
+EndFunction
+
+
+Function OnFormActivate()
+	
+	$TextBox.SetFocus()
+	
+EndFunction
+
+Function OnRun()
+	
+		Run 'wkix32 "$CurrentFileName"'
+		
+EndFunction
+
+Function LoadFile($FileName)
+	
+	$LoadFile = 0
+	
+	$LoadFile = 1		
+
+EndFunction
+
+Function OnExitClick()
+		
+	$Form.Hide
+	Exit 1
+	
+EndFunction
+
+Function GetFileName($FileName)
+	
+	$GetFileName = SubStr($FileName, InStrRev($FileName, "\") + 1)
+	
+EndFunction
+
+Function ReadValueEx($Key, $Value, $Default)
+	 
+	Dim $Data
+	
+	$ReadValueEx = $Default
+	
+	$Data = ReadValue($Key, $Value)
+	If @ERROR = 0
+		$ReadValueEx = $Data
+	EndIf
+	
+EndFunction
