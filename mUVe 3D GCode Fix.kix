@@ -158,7 +158,7 @@ $OpenFileDialog.CheckFileExists = "True"
 $CurrentFileName = "Use open from the file menu to choose a source"
 
 If $CurrentFileName
-  If Not LoadFile($CurrentFileName)
+	If Not LoadFile($CurrentFileName)
 		$CurrentFileName = $Untitled
 	EndIf
 Else
@@ -262,21 +262,29 @@ Function ButtonFixCode_Click()
 									
 				$LineNumber = $LineNumber + 1			
 				$LineCount = Len($CodeRead)
-				$FLocation = InStrRev($CodeRead, "F") ; See how far into the line the F variable is so we know how many places to count for Z
-															
-				Select
-																	
-					Case $FLocation = 11 ; 1 digit leading on Z
-						$FloatNum = Val(SubStr($CodeRead, 5, 5))	
-						$ZRead = SubStr($CodeRead, 5, 5)
-					Case $FLocation = 12 ; 2 digit leading on Z
-						$FloatNum = Val(SubStr($CodeRead, 5, 6))	
-						$ZRead = SubStr($CodeRead, 5, 6)
-					Case $FLocation = 13 ; 3 digit leading on Z
-						$FloatNum = Val(SubStr($CodeRead, 5, 7))
-						$ZRead = SubStr($CodeRead, 5, 7)
-																	
-				EndSelect
+				
+				If InSTR($CodeRead, "F")
+					$FLocation = InStrRev($CodeRead, "F") ; See how far into the line the F variable is so we know how many places to count for Z
+																
+					Select
+																		
+						Case $FLocation = 11 ; 1 digit leading on Z
+							$FloatNum = Val(SubStr($CodeRead, 5, 5))	
+							$ZRead = SubStr($CodeRead, 5, 5)
+						Case $FLocation = 12 ; 2 digit leading on Z
+							$FloatNum = Val(SubStr($CodeRead, 5, 6))	
+							$ZRead = SubStr($CodeRead, 5, 6)
+						Case $FLocation = 13 ; 3 digit leading on Z
+							$FloatNum = Val(SubStr($CodeRead, 5, 7))
+							$ZRead = SubSTR($CodeRead, 5, 7)
+																		
+					EndSelect
+					
+				Else
+					$FloatNum = Val(SubSTR($CodeRead,5))
+					$ZRead = SubSTR($CodeRead,5)
+					
+				EndIf
 																
 				$LiftZUp = $Zmm + $FloatNum + $Base
 				$SecondZ = $LiftZUp + 2
