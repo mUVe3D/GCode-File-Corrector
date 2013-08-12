@@ -207,7 +207,7 @@ Function ButtonFixCode_Click()
 	$ = Open(2, $SaveFile, 5) ;open the destination file for writing
 
 		
-	While $CodeRead <> End ;main processing loop
+	While $CodeRead <> Stop ;main processing loop
 				
 		$CodeRead = ReadLine(1)	
 						
@@ -216,137 +216,143 @@ Function ButtonFixCode_Click()
 		Else
 			$JumpMove = 0
 		EndIf
+		
+		If $CodeRead <> "Stop"
 						
-		Select
-												
-			Case InStr($CodeRead, "G1 X") And $JumpMove = 1 ;quick move lines without an F code need to have one, this case handles that
-													
-				If $LaserState = 1
-					$ = WriteLine(2, $LaserOff.Text + Chr(13) + Chr(10))
-																				
-					If $SyncForce.Checked
-						$ = WriteLine(2, "M400" + Chr(13) + Chr(10))			
-					EndIf
-				EndIf
-								
-				$ = WriteLine(2, $CodeRead + " F5400.000" + Chr(13) + Chr(10))									
-				$ = WriteLine(2, $LaserOn.Text + Chr(13) + Chr(10))
-												
-				$LaserState = 1
-				$JumpMove = 0
-													
-				If $SyncForce.Checked
-					$ = WriteLine(2, "M400" + Chr(13) + Chr(10))
-				EndIf		
-												
-			Case InStr($CodeRead, "G1 X") And Not InStr($CodeRead, "E") ;quick move lines with an F code already need to omit that portion, this case handles that
-													
-				If $LaserState = 1
-					$ = WriteLine(2, $LaserOff.Text + Chr(13) + Chr(10))
-																										
-					If $SyncForce.Checked
-						$ = WriteLine(2, "M400" + Chr(13) + Chr(10))			
-					EndIf
-				EndIf
-													
-				$ = WriteLine(2, $CodeRead + Chr(13) + Chr(10))									
-				$ = WriteLine(2, $LaserOn.Text + " S" + $FormLaserPower.Text + CHR(13) + CHR(10))
+			Select
 																	
-				$LaserState = 1
-																		
-				If $SyncForce.Checked
-					$ = WriteLine(2, "M400" + Chr(13) + Chr(10))
-				EndIf	
+				Case InStr($CodeRead, "G1 X") And $JumpMove = 1 ;quick move lines without an F code need to have one, this case handles that
+														
+					If $LaserState = 1
+						$ = WriteLine(2, $LaserOff.Text + Chr(13) + Chr(10))
+																					
+						If $SyncForce.Checked
+							$ = WriteLine(2, "M400" + Chr(13) + Chr(10))			
+						EndIf
+					EndIf
 									
-			Case InStr($CodeRead, "G1 Z") ;case for lines with a Z axis move, this is where the peel takes place
-									
-				$LineNumber = $LineNumber + 1			
-				$LineCount = Len($CodeRead)
-				
-				If InSTR($CodeRead, "F")
-					$FLocation = InStrRev($CodeRead, "F") ; See how far into the line the F variable is so we know how many places to count for Z
-																
-					Select
-																		
-						Case $FLocation = 11 ; 1 digit leading on Z
-							$FloatNum = Val(SubStr($CodeRead, 5, 5))	
-							$ZRead = SubStr($CodeRead, 5, 5)
-						Case $FLocation = 12 ; 2 digit leading on Z
-							$FloatNum = Val(SubStr($CodeRead, 5, 6))	
-							$ZRead = SubStr($CodeRead, 5, 6)
-						Case $FLocation = 13 ; 3 digit leading on Z
-							$FloatNum = Val(SubStr($CodeRead, 5, 7))
-							$ZRead = SubSTR($CodeRead, 5, 7)
-																		
-					EndSelect
-					
-				Else
-					$FloatNum = Val(SubSTR($CodeRead,5))
-					$ZRead = SubSTR($CodeRead,5)
-					
-				EndIf
-																
-				$LiftZUp = $Zmm + $FloatNum + $Base
-				$SecondZ = $LiftZUp + 2
-				$VerticalTravel = SubStr($ZRead, 2)
-				$AdjustedZ = CDbl(FormatNumber($ZRead,3)) + CDbl($Base)
-				
+					$ = WriteLine(2, $CodeRead + " F5400.000" + Chr(13) + Chr(10))									
+					$ = WriteLine(2, $LaserOn.Text + Chr(13) + Chr(10))
 													
-				If $LineNumber > 1 ;we don't want to do the peel move the first time we see a Z code, this statement handles it as well as handles all the Z codes from there on
-																															
-					$ = WriteLine(2, $LaserOff.Text + Chr(13) + Chr(10))
-																														
-					If $SyncForce.Checked
-						$ = WriteLine(2, "M400" + Chr(13) + Chr(10))			
-					EndIf			
-									
-					$ = WriteLine(2, "G1 E" + $LiftZUp + ".000" + $ZLiftSpeed + Chr(13) + Chr(10))
-					$ = WriteLine(2, "G4 P250" + Chr(13) + Chr(10))
-					$ = WriteLine(2, "G1 Z" + $LiftZUp + ".000" + $ZLiftSpeed + Chr(13) + Chr(10))
-					
-					If $LineNumber = 2
-						$ = WriteLine(2, "G4 P" + $BasePause + Chr(13) + Chr(10))
-										
-					Else
-						$ = WriteLine(2, "G4 P250" + Chr(13) + Chr(10))
-																
-					EndIf
-				
-					$ = WriteLine(2, "G1 Z" + $AdjustedZ + " E" + $AdjustedZ + $ZDropSpeed + Chr(13) + Chr(10))
-					$ = WriteLine(2, "G4 P" + $ZPause + Chr(13) + Chr(10))
-					$CodeRead = ReadLine(1)
-					$ = WriteLine(2, $CodeRead + " F5400.000" + Chr(13) + Chr(10))	
-																															
-					$ = WriteLine(2, $LaserOn.Text + " S" + $FormLaserPower.Text + CHR(13) + CHR(10))
-																																			
 					$LaserState = 1
-																															
+					$JumpMove = 0
+														
 					If $SyncForce.Checked
-						$ = WriteLine(2, "M400" + Chr(13) + Chr(10))			
+						$ = WriteLine(2, "M400" + Chr(13) + Chr(10))
+					EndIf		
+													
+				Case InStr($CodeRead, "G1 X") And Not InStr($CodeRead, "E") ;quick move lines with an F code already need to omit that portion, this case handles that
+														
+					If $LaserState = 1
+						$ = WriteLine(2, $LaserOff.Text + Chr(13) + Chr(10))
+																											
+						If $SyncForce.Checked
+							$ = WriteLine(2, "M400" + Chr(13) + Chr(10))			
+						EndIf
 					EndIf
-																															
-																													
-				EndIf
-								
-			Case InStr($CodeRead, "G1 X") And InStr($CodeRead, "E")	
-				$StartPoint = InStr($CodeRead, "E")
-				$StartPoint = $StartPoint - 1
-				$ = WriteLine(2, SubStr($CodeRead, 1, $StartPoint) + Chr(13) + Chr(10))
-								
-			Case $CodeRead = Stop
-				$CodeRead = ReadLine(1)
-				While $CodeRead <> End
-					WriteLine(2, $CodeRead + Chr(13) + Chr(10))
-					$CodeRead = ReadLine(1)
-				Loop
-								
-			Case $CodeRead <> End
-				$ = WriteLine(2, $CodeRead + Chr(13) + Chr(10))
+														
+					$ = WriteLine(2, $CodeRead + Chr(13) + Chr(10))									
+					$ = WriteLine(2, $LaserOn.Text + " S" + $FormLaserPower.Text + CHR(13) + CHR(10))
+																		
+					$LaserState = 1
+																			
+					If $SyncForce.Checked
+						$ = WriteLine(2, "M400" + Chr(13) + Chr(10))
+					EndIf	
+										
+				Case InStr($CodeRead, "G1 Z") ;case for lines with a Z axis move, this is where the peel takes place
+										
+					$LineNumber = $LineNumber + 1			
+					$LineCount = Len($CodeRead)
+					
+					If InSTR($CodeRead, "F")
+						$FLocation = InStrRev($CodeRead, "F") ; See how far into the line the F variable is so we know how many places to count for Z
+																	
+						Select
+																			
+							Case $FLocation = 11 ; 1 digit leading on Z
+								$FloatNum = Val(SubStr($CodeRead, 5, 5))	
+								$ZRead = SubStr($CodeRead, 5, 5)
+							Case $FLocation = 12 ; 2 digit leading on Z
+								$FloatNum = Val(SubStr($CodeRead, 5, 6))	
+								$ZRead = SubStr($CodeRead, 5, 6)
+							Case $FLocation = 13 ; 3 digit leading on Z
+								$FloatNum = Val(SubStr($CodeRead, 5, 7))
+								$ZRead = SubSTR($CodeRead, 5, 7)
+																			
+						EndSelect
 						
-		EndSelect
+					Else
+						$FloatNum = Val(SubSTR($CodeRead,5))
+						$ZRead = SubSTR($CodeRead,5)
+						
+					EndIf
+																	
+					$LiftZUp = $Zmm + $FloatNum + $Base
+					$SecondZ = $LiftZUp + 2
+					$VerticalTravel = SubStr($ZRead, 2)
+					$AdjustedZ = CDbl(FormatNumber($ZRead,3)) + CDbl($Base)
+					
+														
+					If $LineNumber > 1 ;we don't want to do the peel move the first time we see a Z code, this statement handles it as well as handles all the Z codes from there on
+																																
+						$ = WriteLine(2, $LaserOff.Text + Chr(13) + Chr(10))
+																															
+						If $SyncForce.Checked
+							$ = WriteLine(2, "M400" + Chr(13) + Chr(10))			
+						EndIf			
+										
+						$ = WriteLine(2, "G1 E" + $LiftZUp + ".000" + $ZLiftSpeed + Chr(13) + Chr(10))
+						$ = WriteLine(2, "G4 P250" + Chr(13) + Chr(10))
+						$ = WriteLine(2, "G1 Z" + $LiftZUp + ".000" + $ZLiftSpeed + Chr(13) + Chr(10))
+						
+						If $LineNumber = 2
+							$ = WriteLine(2, "G4 P" + $BasePause + Chr(13) + Chr(10))
+											
+						Else
+							$ = WriteLine(2, "G4 P250" + Chr(13) + Chr(10))
+																	
+						EndIf
+					
+						$ = WriteLine(2, "G1 Z" + $AdjustedZ + " E" + $AdjustedZ + $ZDropSpeed + Chr(13) + Chr(10))
+						$ = WriteLine(2, "G4 P" + $ZPause + Chr(13) + Chr(10))
+						$CodeRead = ReadLine(1)
+						If $CodeRead <> Stop
+							$ = WriteLine(2, $CodeRead + " F5400.000" + Chr(13) + Chr(10))	
+																																	
+							$ = WriteLine(2, $LaserOn.Text + " S" + $FormLaserPower.Text + CHR(13) + CHR(10))
+																																					
+							$LaserState = 1
+																																	
+							If $SyncForce.Checked
+								$ = WriteLine(2, "M400" + Chr(13) + Chr(10))			
+							EndIf
+						EndIf
+																																
+																														
+					EndIf
+									
+				Case InStr($CodeRead, "G1 X") And InStr($CodeRead, "E")	
+					$StartPoint = InStr($CodeRead, "E")
+					$StartPoint = $StartPoint - 1
+					$ = WriteLine(2, SubSTR($CodeRead, 1, $StartPoint) + CHR(13) + CHR(10))
+									
+				Case $CodeRead <> Stop
+					$ = WriteLine(2, $CodeRead + CHR(13) + CHR(10))
+							
+			EndSelect
+			
+		EndIf
 			
 	Loop
-		
+	
+	$CodeRead = ReadLine(1)
+
+	While $CodeRead <> End
+		WriteLine(2, $CodeRead + CHR(13) + CHR(10))
+		$CodeRead = ReadLine(1)
+	Loop
+	
 	$ = WriteLine(2, $LaserOff.Text + Chr(13) + Chr(10)) ;ensure laser is turned off as the last command
 						
 	If $SyncForce.Checked
@@ -355,7 +361,8 @@ Function ButtonFixCode_Click()
 				
 	Close(1)
 	Close(2)
-	MessageBox("Processing Complete", "mUVe 3D",, 10)
+	MessageBox("Processing Complete", "mUVe 3D",, 999)		
+
 						
 EndFunction
 
