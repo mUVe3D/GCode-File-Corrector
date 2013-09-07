@@ -117,6 +117,16 @@ $LaserOff.Location = 20, 400
 $LaserOff.Size = 40, 20
 $LaserOff.Caption = "M107"
 
+$ProcLabel = $Form.Controls.Add("Label")
+$ProcLabel.Location = 430, 500
+$ProcLabel.Size = 110, 30
+$ProcLabel.Text = "Corrected Z Lifts: "
+
+$ProcLine = $Form.Controls.Add("Textbox")
+$ProcLine.Location = 540, 497
+$ProcLine.Size = 40, 20
+$ProcLine.Caption = "0"
+
 $SyncForce = $Form.Controls.Add("CheckBox")
 $SyncForce.Location = 20, 435
 $SyncForce.Size = 20, 20
@@ -262,7 +272,8 @@ Function ButtonFixCode_Click()
 										
 				Case InStr($CodeRead, "G1 Z") ;case for lines with a Z axis move, this is where the peel takes place
 										
-					$LineNumber = $LineNumber + 1			
+					$LineNumber = $LineNumber + 1		
+					$ProcLine.Caption = $LineNumber
 					$LineCount = Len($CodeRead)
 					
 					If InSTR($CodeRead, "F")
@@ -328,7 +339,8 @@ Function ButtonFixCode_Click()
 								$ = WriteLine(2, "M400" + Chr(13) + Chr(10))			
 							EndIf
 						EndIf
-																																
+					Else
+						$ = WriteLine(2, "G1 Z" + $ZRead + " E" + $ZRead + $ZDropSpeed + CHR(13) + CHR(10))																											
 																														
 					EndIf
 									
